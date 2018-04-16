@@ -31,7 +31,7 @@ impl<M: ManageConnection> Bb8Middleware<M> {
 
 impl<M> Middleware for Bb8Middleware<M>
 where
-    M: ManageConnection + Clone,
+    M: ManageConnection,
 {
     fn call<Chain>(self, mut state: State, chain: Chain) -> Box<HandlerFuture>
     where
@@ -59,7 +59,7 @@ where
 
 impl<M> NewMiddleware for Bb8Middleware<M>
 where
-    M: ManageConnection + Clone,
+    M: ManageConnection,
 {
     type Instance = Bb8Middleware<M>;
 
