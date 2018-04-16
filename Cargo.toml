@@ -1,0 +1,18 @@
+[package]
+name = "gotham-middleware-bb8"
+version = "0.1.0"
+authors = ["Christoph Wurst <christoph@winzerhof-wurst.at>"]
+
+[dependencies]
+bb8 = { path = "./bb8" }
+bb8-postgres = { path = "./bb8/postgres" }
+futures = "0.1"
+gotham = "0.2"
+gotham_derive = "0.2"
+log = "*"
+tokio-core = "*"
+
+[dev-dependencies]
+hyper = "*"
+mime = "*"
+tokio-postgres = { git = "https://github.com/sfackler/rust-postgres" }
