@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Christoph Wurst <christoph@winzerhof-wurst.at>"]
 
 [dependencies]
-bb8 = { path = "./bb8" }
-bb8-postgres = { path = "./bb8/postgres" }
+bb8 = { git = "https://github.com/khuey/bb8" }
+bb8-postgres = { git = "https://github.com/khuey/bb8" }
 futures = "0.1"
 gotham = "0.2"
 gotham_derive = "0.2"
