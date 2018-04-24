@@ -11,9 +11,7 @@ extern crate tokio_core;
 extern crate tokio_postgres;
 
 use std::error::Error;
-use std::thread;
 
-use bb8::Builder as Bb8Builder;
 use bb8_postgres::PostgresConnectionManager;
 use futures::Future;
 use futures_state_stream::StateStream;
@@ -26,7 +24,6 @@ use gotham::router::builder::*;
 use gotham::state::{FromState, State};
 use gotham_middleware_bb8::{Bb8Middleware, Bb8MiddlewareData};
 use hyper::StatusCode;
-use tokio_core::reactor::{Core, Remote};
 
 pub fn say_hello(state: State) -> Box<HandlerFuture> {
     let f = {
@@ -60,45 +57,25 @@ pub fn say_hello(state: State) -> Box<HandlerFuture> {
     Box::new(f)
 }
 
-fn router(remote: Remote) -> Box<Future<Item = Router, Error = ()>> {
-    let conn_mgr = PostgresConnectionManager::new(
-        "postgresql://postgres:mysecretpassword@localhost:5432",
-        || tokio_postgres::TlsMode::None,
-    ).unwrap();
-    let f = Bb8Builder::new()
-        .build(conn_mgr, remote)
-        .and_then(|pool| {
-            // docker run --name gotham-middleware-postgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
-            let (chain, pipelines) =
-                single_pipeline(new_pipeline().add(Bb8Middleware::new(pool)).build());
+fn router() -> Router {
+    // docker run --name gotham-middleware-postgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
+    let bb8_mw = Bb8Middleware::new(|| {
+        PostgresConnectionManager::new(
+            "postgresql://postgres:mysecretpassword@localhost:5432",
+            || tokio_postgres::TlsMode::None,
+        ).unwrap()
+    });
+    let (chain, pipelines) = single_pipeline(new_pipeline().add(bb8_mw).build());
 
-            let router = build_router(chain, pipelines, |route| {
-                route.get("/").to(say_hello);
-            });
-
-            Ok(router)
-        })
-        .map_err(|_| ());
-
-    Box::new(f)
+    build_router(chain, pipelines, |route| {
+        route.get("/").to(say_hello);
+    })
 }
 
 pub fn main() {
     env_logger::init();
 
     let addr = "127.0.0.1:7878";
-    let mut core = Core::new().unwrap();
-
-    let remote = core.remote();
-
-    core.run(router(remote).and_then(|router| {
-        println!("Listening for requests at http://{}", addr);
-
-        thread::spawn(move || {
-            gotham::start(addr, router);
-        }).join()
-            .unwrap();
-
-        Ok(())
-    })).unwrap();
+    println!("Listening for requests at http://{}", addr);
+    gotham::start(addr, router());
 }
